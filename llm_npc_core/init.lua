@@ -35,28 +35,8 @@ local function load_config()
             return
         end
     end
-    -- Fallback to mod path config
-    config_path = mod_path .. "/../config.json"
-    file = io.open(config_path, "r")
-    if file then
-        local content = file:read("*all")
-        file:close()
-        local success, data = pcall(minetest.parse_json, content)
-        if success and data then
-            if data.paths then
-                if data.paths.commands_file then
-                    CONFIG.commands_file = data.paths.commands_file
-                end
-                if data.paths.state_file then
-                    CONFIG.state_file = data.paths.state_file
-                end
-            end
-            if data.npc and data.npc.update_interval then
-                CONFIG.update_interval = data.npc.update_interval
-            end
-            minetest.log("action", "[LLM_NPC] Loaded config from " .. config_path)
-        end
-    end
+    -- Config will be loaded from worldpath only for security reasons
+    -- Parent directory access via '..' is blocked by Minetest's mod security
 end
 
 -- Resolve file paths relative to worldpath
