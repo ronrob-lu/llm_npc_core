@@ -218,9 +218,21 @@ function spawn_npc(name, pos)
     
     -- Find ground level if y is high
     if pos.y > 10 then
-        local ground_pos = minetest.find_node_closest(pos, 10, "group:soil")
+        -- Search downward for solid ground
+        local ground_pos = nil
+        for y = pos.y, -32000, -1 do
+            local check_pos = {x = pos.x, y = y, z = pos.z}
+            if is_position_solid(check_pos) then
+                ground_pos = {x = pos.x, y = y + 1, z = pos.z}
+                break
+            end
+            -- Stop after searching 100 nodes to prevent lag
+            if pos.y - y > 100 then
+                break
+            end
+        end
         if ground_pos then
-            pos = vector.add(ground_pos, {x = 0, y = 1, z = 0})
+            pos = ground_pos
         end
     end
     
