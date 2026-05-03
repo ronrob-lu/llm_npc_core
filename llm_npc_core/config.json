@@ -20,8 +20,8 @@
     },
     
     "paths": {
-        "commands_file": "commands.json",
-        "state_file": "state.json"
+        "commands_file": "/workspace/commands.json",
+        "state_file": "/workspace/state.json"
     },
     
     "behavior": {
