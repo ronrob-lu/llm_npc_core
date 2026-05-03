@@ -1,0 +1,32 @@
+{
+    "_comment": "Luanti-Ollama-NPC Configuration File",
+    
+    "ollama": {
+        "host": "http://127.0.0.1:11434",
+        "model": "llama3.2",
+        "timeout": 30,
+        "temperature": 0.7
+    },
+    
+    "npc": {
+        "name": "AutoBot",
+        "spawn_pos": {
+            "x": 0,
+            "y": 50,
+            "z": 0
+        },
+        "personality_prompt": "You are a helpful and curious NPC exploring a voxel world. You should be cautious but adventurous. Always explain your reasoning.",
+        "update_interval": 2.0
+    },
+    
+    "paths": {
+        "commands_file": "commands.json",
+        "state_file": "state.json"
+    },
+    
+    "behavior": {
+        "move_radius": 5,
+        "dig_depth_limit": -10,
+        "build_schematic_max_size": 10
+    }
+}
