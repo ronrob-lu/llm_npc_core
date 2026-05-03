@@ -173,9 +173,8 @@ minetest.register_entity("llm_npc_core:npc", {
         self.object:set_armor_groups({fleshy = 100})
         self.hp = self.object:get_hp()
         
-        -- Store entity reference
-        local obj_id = self.object:get_id()
-        npc_entities[obj_id] = self
+        -- Store entity reference using object as key
+        npc_entities[self.object] = self
         
         -- Set nametag from staticdata or default
         local name = staticdata and staticdata ~= "" and staticdata or "NPC"
@@ -193,7 +192,7 @@ minetest.register_entity("llm_npc_core:npc", {
         if self.hp <= 0 then
             minetest.log("action", "[LLM_NPC] NPC died: " .. (self.object:get_nametag_attributes() or {}).text)
             self.object:remove()
-            npc_entities[self.object:get_id()] = nil
+            npc_entities[self.object] = nil
         end
     end,
     
@@ -254,8 +253,8 @@ function execute_action(npc_name, action_type, params)
     local npc_obj = nil
     local npc_data = nil
     
-    -- Try using stored npc_entities table first
-    for obj_id, entity in pairs(npc_entities) do
+    -- Try using stored npc_entities table first (now keyed by object)
+    for obj, entity in pairs(npc_entities) do
         if entity and entity.object then
             local attrs = entity.object:get_nametag_attributes()
             if attrs and attrs.text == npc_name then
@@ -435,7 +434,7 @@ minetest.register_globalstep(function(dtime)
     end
     
     -- Write state for all NPCs using stored entity references
-    for obj_id, entity in pairs(npc_entities) do
+    for obj, entity in pairs(npc_entities) do
         if entity and entity.object then
             local obj = entity.object
             -- Check if object still exists (not removed)
@@ -465,7 +464,7 @@ minetest.register_globalstep(function(dtime)
                 end
             else
                 -- Object was removed, clean up from table
-                npc_entities[obj_id] = nil
+                npc_entities[obj] = nil
             end
         end
     end
