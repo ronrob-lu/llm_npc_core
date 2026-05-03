@@ -11,10 +11,11 @@ local CONFIG = {
     update_interval = 1.0,
 }
 
--- Load configuration from parent directory's config.json if available
+-- Load configuration: first from mod path (default), then override from worldpath if available
 local function load_config()
-    local config_path = minetest.get_worldpath() .. "/config.json"
-    local file = io.open(config_path, "r")
+    -- First, try to load default config from mod path
+    local mod_config_path = mod_path .. "/config.json"
+    local file = io.open(mod_config_path, "r")
     if file then
         local content = file:read("*all")
         file:close()
@@ -31,12 +32,32 @@ local function load_config()
             if data.npc and data.npc.update_interval then
                 CONFIG.update_interval = data.npc.update_interval
             end
-            minetest.log("action", "[LLM_NPC] Loaded config from " .. config_path)
-            return
+            minetest.log("action", "[LLM_NPC] Loaded default config from " .. mod_config_path)
         end
     end
-    -- Config will be loaded from worldpath only for security reasons
-    -- Parent directory access via '..' is blocked by Minetest's mod security
+
+    -- Then, try to override with world-specific config from worldpath
+    local world_config_path = minetest.get_worldpath() .. "/config.json"
+    file = io.open(world_config_path, "r")
+    if file then
+        local content = file:read("*all")
+        file:close()
+        local success, data = pcall(minetest.parse_json, content)
+        if success and data then
+            if data.paths then
+                if data.paths.commands_file then
+                    CONFIG.commands_file = data.paths.commands_file
+                end
+                if data.paths.state_file then
+                    CONFIG.state_file = data.paths.state_file
+                end
+            end
+            if data.npc and data.npc.update_interval then
+                CONFIG.update_interval = data.npc.update_interval
+            end
+            minetest.log("action", "[LLM_NPC] Overridden config from " .. world_config_path)
+        end
+    end
 end
 
 -- Resolve file paths relative to worldpath
