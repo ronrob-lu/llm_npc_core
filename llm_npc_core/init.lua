@@ -238,16 +238,36 @@ end
 function execute_action(npc_name, action_type, params)
     params = params or {}
     
-    -- Find NPC by nametag
+    -- Find NPC by nametag using stored entity references first
     local npc_obj = nil
     local npc_data = nil
-    for _, obj in ipairs(minetest.get_objects()) do
-        if obj:get_luaentity() then
-            local attrs = obj:get_nametag_attributes()
+    
+    -- Try using stored npc_entities table first
+    for obj_id, entity in pairs(npc_entities) do
+        if entity and entity.object then
+            local attrs = entity.object:get_nametag_attributes()
             if attrs and attrs.text == npc_name then
-                npc_obj = obj
-                npc_data = obj:get_luaentity()
+                npc_obj = entity.object
+                npc_data = entity
                 break
+            end
+        end
+    end
+    
+    -- Fallback: iterate all objects if not found in npc_entities
+    if not npc_obj and minetest.get_objects_in_area then
+        local all_objects = minetest.get_objects_in_area(
+            vector.new(-32000, -32000, -32000),
+            vector.new(32000, 32000, 32000)
+        )
+        for _, obj in ipairs(all_objects) do
+            if obj and obj:get_luaentity() then
+                local attrs = obj:get_nametag_attributes()
+                if attrs and attrs.text == npc_name then
+                    npc_obj = obj
+                    npc_data = obj:get_luaentity()
+                    break
+                end
             end
         end
     end
@@ -402,31 +422,38 @@ minetest.register_globalstep(function(dtime)
         end
     end
     
-    -- Write state for all NPCs
-    for _, obj in ipairs(minetest.get_objects()) do
-        if obj:get_luaentity() then
-            local attrs = obj:get_nametag_attributes()
-            local npc_name = attrs and attrs.text or "NPC"
-            local pos = obj:get_pos()
-            local yaw = obj:get_yaw()
-            local hp = obj:get_hp()
-            
-            local state = {
-                npc_name = npc_name,
-                pos = {x = math.floor(pos.x * 100) / 100, y = math.floor(pos.y * 100) / 100, z = math.floor(pos.z * 100) / 100},
-                yaw = math.floor(yaw * 100) / 100,
-                hp = hp,
-                timestamp = os.time(),
-                nearby_blocks = get_nearby_blocks(pos, 5),
-                inventory = {}, -- Placeholder for future inventory system
-            }
-            
-            local state_path = get_state_path()
-            local json_str = minetest.write_json(state)
-            if json_str then
-                atomic_write(state_path, json_str)
+    -- Write state for all NPCs using stored entity references
+    for obj_id, entity in pairs(npc_entities) do
+        if entity and entity.object then
+            local obj = entity.object
+            -- Check if object still exists (not removed)
+            if obj:get_pos() then
+                local attrs = obj:get_nametag_attributes()
+                local npc_name = attrs and attrs.text or "NPC"
+                local pos = obj:get_pos()
+                local yaw = obj:get_yaw()
+                local hp = obj:get_hp()
+                
+                local state = {
+                    npc_name = npc_name,
+                    pos = {x = math.floor(pos.x * 100) / 100, y = math.floor(pos.y * 100) / 100, z = math.floor(pos.z * 100) / 100},
+                    yaw = math.floor(yaw * 100) / 100,
+                    hp = hp,
+                    timestamp = os.time(),
+                    nearby_blocks = get_nearby_blocks(pos, 5),
+                    inventory = {}, -- Placeholder for future inventory system
+                }
+                
+                local state_path = get_state_path()
+                local json_str = minetest.write_json(state)
+                if json_str then
+                    atomic_write(state_path, json_str)
+                else
+                    minetest.log("error", "[LLM_NPC] Failed to serialize state")
+                end
             else
-                minetest.log("error", "[LLM_NPC] Failed to serialize state")
+                -- Object was removed, clean up from table
+                npc_entities[obj_id] = nil
             end
         end
     end
